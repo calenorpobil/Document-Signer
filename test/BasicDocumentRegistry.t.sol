@@ -40,7 +40,7 @@ contract BasicDocumentRegistryTest is Test {
         uint256 futureTimestamp = block.timestamp + 1000;
         bytes memory signature = "dummy signature";
         
-        // Should revert with future timestamp error
+        // Should revert with future timestamp error (checked before signature validation)
         vm.expectRevert(bytes("DocumentRegistry: future timestamp not allowed"));
         documentRegistry.storeDocumentHash(TEST_HASH, futureTimestamp, signature);
     }
@@ -49,9 +49,10 @@ contract BasicDocumentRegistryTest is Test {
      * @dev Test that empty signature validation works
      */
     function testStoreDocumentHash_EmptySignatureFails() public {
-        // Should revert with empty signature error
+        // Use current timestamp to avoid future timestamp check
+        // Empty signature should fail at validSignature modifier
         vm.expectRevert(bytes("DocumentRegistry: empty signature"));
-        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, "");
+        documentRegistry.storeDocumentHash(TEST_HASH, block.timestamp, "");
     }
 
     /**
@@ -118,14 +119,15 @@ contract BasicDocumentRegistryTest is Test {
     }
 
     /**
-     * @dev Test edge case with minimum timestamp
+     * @dev Test edge case with minimum timestamp (0)
      */
     function testStoreDocumentHash_MinimumTimestamp() public {
         uint256 minTimestamp = 0;
         bytes memory signature = "dummy signature";
         
-        // Should revert due to signature validation, but timestamp should be accepted
-        vm.expectRevert(bytes("DocumentRegistry: future timestamp not allowed"));
+        // Timestamp 0 is valid (not in the future), but signature validation will fail
+        // The contract uses ECDSA.recover which throws ECDSAInvalidSignatureLength for invalid length
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("ECDSAInvalidSignatureLength(uint256)")), 15));
         documentRegistry.storeDocumentHash(TEST_HASH, minTimestamp, signature);
     }
 
@@ -136,8 +138,9 @@ contract BasicDocumentRegistryTest is Test {
         uint256 currentTimestamp = block.timestamp;
         bytes memory signature = "dummy signature";
         
-        // Should revert due to signature validation, but timestamp should be accepted
-        vm.expectRevert(bytes("DocumentRegistry: future timestamp not allowed"));
+        // Current timestamp is valid (not in the future), but signature validation will fail
+        // The contract uses ECDSA.recover which throws ECDSAInvalidSignatureLength for invalid length
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("ECDSAInvalidSignatureLength(uint256)")), 15));
         documentRegistry.storeDocumentHash(TEST_HASH, currentTimestamp, signature);
     }
 
