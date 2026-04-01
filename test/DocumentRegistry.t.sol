@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {DocumentRegistry} from "../contracts/DocumentRegistry.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @title DocumentRegistryTest
@@ -16,13 +17,17 @@ contract DocumentRegistryTest is Test {
     // Test data
     bytes32 public constant TEST_HASH = keccak256("test document content");
     uint256 public constant TEST_TIMESTAMP = 1640995200; // 2022-01-01 00:00:00 UTC
-    address public constant TEST_SIGNER = address(0x123);
+    address public TEST_SIGNER;
     
     // Private key for signature generation (for testing purposes)
     uint256 private constant TEST_PRIVATE_KEY = 0x1234567890123456789012345678901234567890123456789012345678901234;
     
     function setUp() public {
+        // Set block timestamp to a known value to avoid future timestamp issues
+        vm.warp(1700000000); // November 14, 2023
         documentRegistry = new DocumentRegistry();
+        // Derive the address from the private key
+        TEST_SIGNER = vm.addr(TEST_PRIVATE_KEY);
     }
 
     /**
@@ -255,6 +260,7 @@ contract DocumentRegistryTest is Test {
         
         // Try to verify with wrong signer
         address wrongSigner = address(0x999);
+        console.log(block.timestamp);
         bool isValid = documentRegistry.verifySignature(TEST_HASH, TEST_TIMESTAMP, wrongSigner, signature);
         
         // Should return false

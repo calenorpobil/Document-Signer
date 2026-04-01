@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./interfaces/IDocumentRegistry.sol";
+import "forge-std/console.sol";
 
 /**
  * @title DocumentRegistry
@@ -97,8 +98,14 @@ contract DocumentRegistry is IDocumentRegistry {
         address signer,
         bytes calldata signature
     ) external override validHash(hash) returns (bool isValid) {
-        // Validate signature format before attempting to recover signer
-        _validateSignatureFormat(signature);
+        // Validate signature format - return false instead of reverting for invalid signatures
+        if (signature.length == 0) {
+            revert("DocumentRegistry: empty signature");
+        }
+        if (!_isValidSignatureFormat(signature)) {
+            emit DocumentVerified(hash, signer, false);
+            return false;
+        }
         
         // Check if document exists
         if (!_documents[hash].exists) {
@@ -216,6 +223,7 @@ contract DocumentRegistry is IDocumentRegistry {
     ) external view returns (bool isValid) {
         // Validate signature format first
         if (!_isValidSignatureFormat(signature)) {
+            console.log("Invalid signature format");
             return false;
         }
         
@@ -223,6 +231,7 @@ contract DocumentRegistry is IDocumentRegistry {
         try this._recoverSignerInternal(hash, timestamp, signature) returns (address recoveredSigner) {
             return recoveredSigner == signer;
         } catch {
+            console.log("Signature recovery failed");
             return false;
         }
     }

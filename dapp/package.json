@@ -1,0 +1,30 @@
+{
+  "name": "dapp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "set NEXT_TELEMETRY_DISABLED=1 && next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@adraffy/ens-normalize": "^1.11.1",
+    "ethers": "^6.16.0",
+    "lucide-react": "^1.7.0",
+    "next": "14.2.18",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.18",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5"
+  }
+}
