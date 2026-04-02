@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@adraffy/ens-normalize": "^1.11.1",
+    "@metamask/sdk-react": "^0.33.1",
     "ethers": "^6.16.0",
     "lucide-react": "^1.7.0",
     "next": "14.2.18",
