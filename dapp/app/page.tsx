@@ -1,19 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { FileSignature, CheckCircle, Wallet } from 'lucide-react';
+import { FileSignature, CheckCircle, Wallet, History } from 'lucide-react';
 import { FileUploader } from '../components/FileUploader';
 import { DocumentSigner } from '../components/DocumentSigner';
 import { DocumentVerifier } from '../components/DocumentVerifier';
+import { DocumentHistory } from '../components/DocumentHistory';
+import { DocumentDetail } from '../components/DocumentDetail';
 import { WalletSelector } from '../components/WalletSelector';
+import { DocumentRecord } from '../types/ethereum';
 
-type Tab = 'sign' | 'verify';
+type Tab = 'sign' | 'verify' | 'history' | 'detail';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('sign');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentHash, setDocumentHash] = useState<string>('');
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null);
+  const [detailDocument, setDetailDocument] = useState<DocumentRecord | null>(null);
 
   const handleFileSelected = (file: File) => {
     setSelectedFile(file);
@@ -32,6 +37,22 @@ export default function Home() {
   const handleDocumentSigned = () => {
     setSelectedFile(null);
     setDocumentHash('');
+  };
+
+  const handleDocumentSelect = (doc: DocumentRecord) => {
+    setSelectedDocument(doc);
+    setDetailDocument(null);
+    setActiveTab('verify');
+  };
+
+  const handleViewDetails = (doc: DocumentRecord) => {
+    setDetailDocument(doc);
+    setActiveTab('detail');
+  };
+
+  const handleBackFromDetail = () => {
+    setDetailDocument(null);
+    setActiveTab('history');
   };
 
   return (
@@ -96,11 +117,22 @@ export default function Home() {
               <CheckCircle className="w-5 h-5" />
               <span>Verify Document</span>
             </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-6 py-3 rounded-md font-medium transition-all flex items-center space-x-2 ${
+                activeTab === 'history'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <History className="w-5 h-5" />
+              <span>History</span>
+            </button>
           </div>
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'sign' ? (
+        {activeTab === 'sign' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left Column: File Upload */}
             <div className="space-y-6">
@@ -175,7 +207,9 @@ export default function Home() {
               />
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'verify' && (
           <div className="max-w-3xl mx-auto">
             <DocumentVerifier />
             
@@ -205,6 +239,35 @@ export default function Home() {
                 </li>
               </ol>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'history' && (
+          <div className="max-w-4xl mx-auto">
+            <DocumentHistory 
+              onDocumentSelect={handleDocumentSelect} 
+              onViewDetails={handleViewDetails}
+            />
+            
+            {/* Info Card */}
+            <div className="mt-8 bg-purple-50 border border-purple-200 rounded-lg p-6">
+              <h4 className="font-semibold text-purple-900 mb-3">
+                Document History
+              </h4>
+              <p className="text-sm text-purple-800">
+                View all documents you have signed. Click "View All Signings" to see detailed
+                information about each document, or "Verify" to check authenticity.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'detail' && detailDocument && (
+          <div className="max-w-4xl mx-auto">
+            <DocumentDetail 
+              document={detailDocument} 
+              onBack={handleBackFromDetail}
+            />
           </div>
         )}
       </main>

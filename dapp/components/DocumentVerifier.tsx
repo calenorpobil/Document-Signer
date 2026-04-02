@@ -26,12 +26,14 @@ export function DocumentVerifier() {
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleFileSelected = (selectedFile: File) => {
+  const handleFileSelected = async (selectedFile: File) => {
     setFile(selectedFile);
-  };
-
-  const handleHashCalculated = (calculatedHash: string) => {
-    setHash(calculatedHash);
+    try {
+      const calculatedHash = await calculateHash(selectedFile);
+      setHash(calculatedHash);
+    } catch (err: any) {
+      console.error('Failed to calculate hash:', err);
+    }
   };
 
   const handleVerify = async () => {

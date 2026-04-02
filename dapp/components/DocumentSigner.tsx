@@ -41,6 +41,9 @@ export function DocumentSigner({ file, hash, onSigned }: DocumentSignerProps) {
     // Create the timestamp that will be used for signing and storing
     const timestamp = Math.floor(Date.now() / 1000);
     
+    // Format timestamp for display in local time
+    const formattedTimestamp = new Date(timestamp * 1000).toLocaleString();
+    
     // Create the exact message hash the contract expects
     // Contract does: keccak256(abi.encodePacked(hash, timestamp))
     // This must match the _recoverSigner function in DocumentRegistry.sol
@@ -52,7 +55,7 @@ export function DocumentSigner({ file, hash, onSigned }: DocumentSignerProps) {
     // Convert to bytes for signing
     const messageBytes = ethers.getBytes(messageHash);
     
-    if (!window.confirm(`Confirm signing:\n\nDocument Hash: ${hash}\nTimestamp: ${timestamp}`)) {
+    if (!window.confirm(`Confirm signing:\n\nDocument Hash: ${hash}\nTimestamp: ${formattedTimestamp}`)) {
       return;
     }
 
@@ -89,6 +92,73 @@ export function DocumentSigner({ file, hash, onSigned }: DocumentSignerProps) {
       setTxHash(hashTx);
       setStep('stored');
       console.log('✅ Document stored:', hashTx);
+      
+      // Add document to history (direct localStorage save with multiple signatures support)
+      if (file) {
+        const newSignature = {
+          signer: account!,
+          timestamp,
+          signature,
+          txHash: hashTx,
+        };
+        
+        console.log('💾 Saving document to history:', { hash, fileName: file.name, signature: newSignature });
+        
+        // Get existing documents from localStorage
+        const storedDocs = localStorage.getItem('signedDocuments');
+        const documents: any[] = storedDocs ? JSON.parse(storedDocs) : [];
+        
+        // Check if document already exists
+        const existingDocIndex = documents.findIndex((d: any) => d.hash === hash);
+        
+        if (existingDocIndex >= 0) {
+          const existingDoc = documents[existingDocIndex];
+          
+          // Handle both old format (with signer) and new format (with signatures array)
+          if (existingDoc.signer && !Array.isArray(existingDoc.signatures)) {
+            // Convert old format to new format and add new signature
+            documents[existingDocIndex] = {
+              hash: existingDoc.hash,
+              fileName: existingDoc.fileName || file.name,
+              fileSize: existingDoc.fileSize || file.size,
+              signatures: [
+                {
+                  signer: existingDoc.signer,
+                  timestamp: existingDoc.timestamp,
+                  signature: existingDoc.signature,
+                  txHash: existingDoc.txHash,
+                },
+                newSignature
+              ]
+            };
+          } else if (Array.isArray(existingDoc.signatures)) {
+            // New format - just append
+            existingDoc.signatures.unshift(newSignature);
+          } else {
+            // Fallback - create signatures array
+            documents[existingDocIndex] = {
+              ...existingDoc,
+              signatures: [newSignature]
+            };
+          }
+          
+          localStorage.setItem('signedDocuments', JSON.stringify(documents));
+          const doc = documents[existingDocIndex];
+          console.log('✅ Signature added to existing document. Total signatures:', doc.signatures.length);
+        } else {
+          // New document - create entry with signatures array
+          const documentRecord = {
+            hash,
+            fileName: file.name,
+            fileSize: file.size,
+            signatures: [newSignature],
+          };
+          documents.unshift(documentRecord);
+          localStorage.setItem('signedDocuments', JSON.stringify(documents));
+          console.log('✅ New document saved to history. Total documents:', documents.length);
+        }
+      }
+      
       onSigned?.();
     } catch (err: any) {
       console.error('❌ Storage failed:', err);
