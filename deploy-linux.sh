@@ -168,15 +168,20 @@ fi
 
 print_success "Contrato desplegado exitosamente"
 
-# Buscar dirección del contrato
+# Leer dirección del contrato desde el broadcast JSON que genera Foundry
+BROADCAST_JSON="$PROJECT_DIR/broadcast/Deploy.s.sol/31337/run-latest.json"
 CONTRACT_ADDRESS=""
-if echo "$DEPLOY_OUTPUT" | grep -q "Deployed contract address:"; then
-    CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "Deployed contract address:" | awk '{print $NF}')
-elif echo "$DEPLOY_OUTPUT" | grep -q "Contract deployed at:"; then
-    CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "Contract deployed at:" | awk '{print $NF}')
+
+if [ -f "$BROADCAST_JSON" ]; then
+    if command -v jq &> /dev/null; then
+        CONTRACT_ADDRESS=$(jq -r '[.transactions[] | select(.contractAddress != null) | .contractAddress] | first' "$BROADCAST_JSON")
+    else
+        # Fallback sin jq: buscar con grep/sed
+        CONTRACT_ADDRESS=$(grep -o '"contractAddress":"0x[0-9a-fA-F]*"' "$BROADCAST_JSON" | head -1 | sed 's/"contractAddress":"//;s/"//')
+    fi
 fi
 
-if [ -n "$CONTRACT_ADDRESS" ]; then
+if [ -n "$CONTRACT_ADDRESS" ] && [ "$CONTRACT_ADDRESS" != "null" ]; then
     print_success "Dirección del contrato: $CONTRACT_ADDRESS"
 else
     print_warning "No se pudo extraer la dirección del contrato automáticamente"

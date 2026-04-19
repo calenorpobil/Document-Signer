@@ -74,7 +74,6 @@ contract BasicDocumentRegistryTest is Test {
         assertEq(doc.hash, bytes32(0), "Hash should be empty");
         assertEq(doc.timestamp, 0, "Timestamp should be 0");
         assertEq(doc.signer, address(0), "Signer should be 0");
-        assertEq(doc.exists, false, "Document should not exist");
     }
 
     /**

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Signature, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useMetaMask } from '../contexts/MetaMaskContext';
 import { useContract } from '../hooks/useContract';
@@ -14,13 +14,18 @@ interface DocumentSignerProps {
 
 export function DocumentSigner({ file, hash, onSigned }: DocumentSignerProps) {
   const { isConnected, account, signer, signMessage } = useMetaMask();
-  const { storeDocument, isLoading, error } = useContract();
+  const { storeDocument, isLoading, error, isDocumentStored } = useContract();
   const [signature, setSignature] = useState<string>('');
   const [isSigning, setIsSigning] = useState(false);
   const [isStoring, setIsStoring] = useState(false);
   const [txHash, setTxHash] = useState<string>('');
   const [step, setStep] = useState<'idle' | 'signed' | 'stored'>('idle');
   const [signedTimestamp, setSignedTimestamp] = useState<number>(0);
+  const [alreadyStoredError, setAlreadyStoredError] = useState(false);
+
+  useEffect(() => {
+    setAlreadyStoredError(false);
+  }, [hash]);
 
   const handleSign = async () => {
     if (!isConnected) {
@@ -37,6 +42,17 @@ export function DocumentSigner({ file, hash, onSigned }: DocumentSignerProps) {
       alert('No signer available');
       return;
     }
+
+    try {
+      const alreadyStored = await isDocumentStored(hash);
+      if (alreadyStored) {
+        setAlreadyStoredError(true);
+        return;
+      }
+    } catch {
+      // If check fails, allow signing to proceed
+    }
+    setAlreadyStoredError(false);
 
     // Create the timestamp that will be used for signing and storing
     const timestamp = Math.floor(Date.now() / 1000);
@@ -236,6 +252,18 @@ export function DocumentSigner({ file, hash, onSigned }: DocumentSignerProps) {
                 <p className="text-sm text-gray-500 mb-1">Signing with:</p>
                 <p className="font-medium text-gray-900">{account}</p>
               </div>
+
+              {alreadyStoredError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-red-900">Document already stored</p>
+                    <p className="text-sm text-red-700 mt-1">
+                      This document has already been signed and stored on the blockchain. Multiple signatures per document are not supported.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={handleSign}
