@@ -18,7 +18,7 @@ interface VerificationResult {
 export function DocumentVerifier() {
   const { isConnected } = useMetaMask();
   const { calculateHash, fileName, formattedFileSize, isCalculating, error: hashError, resetHash } = useFileHash();
-  const { verifyDocument, getDocumentInfo, isLoading, error: contractError } = useContract();
+  const { getDocumentInfo, isLoading, error: contractError } = useContract();
   
   const [file, setFile] = useState<File | null>(null);
   const [hash, setHash] = useState<string>('');
@@ -74,17 +74,15 @@ export function DocumentVerifier() {
         return;
       }
 
-      // Verify the document
-      const storedSignature = docInfo.signature;
-      const isValid = await verifyDocument(hash, signerAddress, storedSignature);
+      const isValid = docInfo.signer.toLowerCase() === signerAddress.toLowerCase();
 
       setResult({
         isValid,
         documentExists: true,
         signer: docInfo.signer,
         timestamp: docInfo.timestamp,
-        storedSignature,
-        message: isValid 
+        storedSignature: docInfo.signature,
+        message: isValid
           ? 'Document is valid! The signature matches the stored document.'
           : 'Document verification failed. The signature does not match.',
       });

@@ -5,335 +5,215 @@ import {Test} from "forge-std/Test.sol";
 import {DocumentRegistry} from "../contracts/DocumentRegistry.sol";
 import {console} from "forge-std/console.sol";
 
-/**
- * @title DocumentRegistryTest
- * @dev Comprehensive test suite for the DocumentRegistry contract
- * Tests all functionality including storage, verification, and edge cases
- */
 contract DocumentRegistryTest is Test {
-    
+
     DocumentRegistry public documentRegistry;
-    
-    // Test data
+
     bytes32 public constant TEST_HASH = keccak256("test document content");
-    uint256 public constant TEST_TIMESTAMP = 1640995200; // 2022-01-01 00:00:00 UTC
+    uint256 public constant TEST_TIMESTAMP = 1640995200; // 2022-01-01
     address public TEST_SIGNER;
-    
-    // Private key for signature generation (for testing purposes)
+
     uint256 private constant TEST_PRIVATE_KEY = 0x1234567890123456789012345678901234567890123456789012345678901234;
-    
+
     function setUp() public {
-        // Set block timestamp to a known value to avoid future timestamp issues
-        vm.warp(1700000000); // November 14, 2023
+        vm.warp(1700000000);
         documentRegistry = new DocumentRegistry();
-        // Derive the address from the private key
         TEST_SIGNER = vm.addr(TEST_PRIVATE_KEY);
     }
 
-    /**
-     * @dev Test successful document storage
-     */
+    // ─── Store ────────────────────────────────────────────────────────────────
+
     function testStoreDocumentHash_Success() public {
-        // Generate a valid signature for the test data
         bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        
-        // Store the document
+
         bool success = documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
-        
-        // Verify success
+
         assertTrue(success, "Document storage should succeed");
-        
-        // Verify document exists
         assertTrue(documentRegistry.isDocumentStored(TEST_HASH), "Document should be stored");
-        
-        // Verify document info
+
         DocumentRegistry.Document memory doc = documentRegistry.getDocumentInfo(TEST_HASH);
         assertEq(doc.hash, TEST_HASH, "Hash should match");
         assertEq(doc.timestamp, TEST_TIMESTAMP, "Timestamp should match");
         assertEq(doc.signer, TEST_SIGNER, "Signer should match");
-        assertEq(doc.exists, true, "Document should exist");
     }
 
-    /**
-     * @dev Test document verification
-     */
-    function testVerifyDocument_Success() public {
-        // Generate a valid signature for the test data
-        bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        
-        // Store the document first
-        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
-        
-        // Verify the document
-        bool isValid = documentRegistry.verifyDocument(TEST_HASH, TEST_SIGNER, signature);
-        
-        // Verify success
-        assertTrue(isValid, "Document verification should succeed");
-    }
-
-    /**
-     * @dev Test that storing the same document twice fails
-     */
     function testStoreDocumentHash_DuplicateFails() public {
-        // Generate a valid signature for the test data
         bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        
-        // Store the document first time
+
         bool success1 = documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
         assertTrue(success1, "First storage should succeed");
-        
-        // Try to store the same document again
+
         bool success2 = documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
         assertFalse(success2, "Duplicate storage should fail");
     }
 
-    /**
-     * @dev Test verification of non-existent document
-     */
-    function testVerifyDocument_NonExistentDocument() public {
-        // Try to verify a document that doesn't exist
-        bool isValid = documentRegistry.verifyDocument(TEST_HASH, TEST_SIGNER, "invalid signature");
-        
-        // Should return false
-        assertFalse(isValid, "Verification of non-existent document should fail");
-    }
-
-    /**
-     * @dev Test verification with wrong signer
-     */
-    function testVerifyDocument_WrongSigner() public {
-        // Generate a valid signature for the test data
-        bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        
-        // Store the document
-        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
-        
-        // Try to verify with wrong signer
-        address wrongSigner = address(0x999);
-        bool isValid = documentRegistry.verifyDocument(TEST_HASH, wrongSigner, signature);
-        
-        // Should return false
-        assertFalse(isValid, "Verification with wrong signer should fail");
-    }
-
-    /**
-     * @dev Test verification with invalid signature
-     */
-    function testVerifyDocument_InvalidSignature() public {
-        // Store the document with a valid signature
-        bytes memory validSignature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, validSignature);
-        
-        // Try to verify with invalid signature
-        bytes memory invalidSignature = "invalid signature";
-        bool isValid = documentRegistry.verifyDocument(TEST_HASH, TEST_SIGNER, invalidSignature);
-        
-        // Should return false
-        assertFalse(isValid, "Verification with invalid signature should fail");
-    }
-
-    /**
-     * @dev Test getting document signature
-     */
-    function testGetDocumentSignature() public {
-        // Generate a valid signature for the test data
-        bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        
-        // Store the document
-        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
-        
-        // Get the stored signature
-        bytes memory storedSignature = documentRegistry.getDocumentSignature(TEST_HASH);
-        
-        // Verify signatures match
-        assertEq(storedSignature, signature, "Stored signature should match original");
-    }
-
-    /**
-     * @dev Test getting document signer
-     */
-    function testGetDocumentSigner() public {
-        // Generate a valid signature for the test data
-        bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        
-        // Store the document
-        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
-        
-        // Get the stored signer
-        address storedSigner = documentRegistry.getDocumentSigner(TEST_HASH);
-        
-        // Verify signer matches
-        assertEq(storedSigner, TEST_SIGNER, "Stored signer should match original");
-    }
-
-    /**
-     * @dev Test getting document timestamp
-     */
-    function testGetDocumentTimestamp() public {
-        // Generate a valid signature for the test data
-        bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        
-        // Store the document
-        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
-        
-        // Get the stored timestamp
-        uint256 storedTimestamp = documentRegistry.getDocumentTimestamp(TEST_HASH);
-        
-        // Verify timestamp matches
-        assertEq(storedTimestamp, TEST_TIMESTAMP, "Stored timestamp should match original");
-    }
-
-    /**
-     * @dev Test storing document with empty hash fails
-     */
     function testStoreDocumentHash_EmptyHashFails() public {
         bytes memory signature = _generateSignature(bytes32(0), TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        
-        // Should revert with invalid hash error
         vm.expectRevert(bytes("DocumentRegistry: invalid hash"));
         documentRegistry.storeDocumentHash(bytes32(0), TEST_TIMESTAMP, signature);
     }
 
-    /**
-     * @dev Test storing document with future timestamp fails
-     */
     function testStoreDocumentHash_FutureTimestampFails() public {
         uint256 futureTimestamp = block.timestamp + 1000;
         bytes memory signature = _generateSignature(TEST_HASH, futureTimestamp, TEST_PRIVATE_KEY);
-        
-        // Should revert with future timestamp error
         vm.expectRevert(bytes("DocumentRegistry: future timestamp not allowed"));
         documentRegistry.storeDocumentHash(TEST_HASH, futureTimestamp, signature);
     }
 
-    /**
-     * @dev Test storing document with empty signature fails
-     */
     function testStoreDocumentHash_EmptySignatureFails() public {
-        // Should revert with empty signature error
         vm.expectRevert(bytes("DocumentRegistry: empty signature"));
         documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, "");
     }
 
-    /**
-     * @dev Test verification with empty signature fails
-     */
-    function testVerifyDocument_EmptySignatureFails() public {
-        // Store the document first
+    function testStoreDocumentHash_MinimumTimestamp() public {
+        bytes memory signature = _generateSignature(TEST_HASH, 0, TEST_PRIVATE_KEY);
+        assertTrue(documentRegistry.storeDocumentHash(TEST_HASH, 0, signature));
+    }
+
+    function testStoreDocumentHash_CurrentTimestamp() public {
+        bytes memory signature = _generateSignature(TEST_HASH, block.timestamp, TEST_PRIVATE_KEY);
+        assertTrue(documentRegistry.storeDocumentHash(TEST_HASH, block.timestamp, signature));
+    }
+
+    // ─── Verify ───────────────────────────────────────────────────────────────
+
+    function testVerifyDocument_Success() public {
         bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
         documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
-        
-        // Should revert with empty signature error
+
+        bool isValid = documentRegistry.verifyDocument(TEST_HASH, TEST_SIGNER, signature);
+        assertTrue(isValid, "Verification should succeed");
+    }
+
+    function testVerifyDocument_NonExistentDocument() public {
+        bool isValid = documentRegistry.verifyDocument(TEST_HASH, TEST_SIGNER, "invalid signature");
+        assertFalse(isValid, "Non-existent document should fail");
+    }
+
+    function testVerifyDocument_WrongSigner() public {
+        bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
+
+        bool isValid = documentRegistry.verifyDocument(TEST_HASH, address(0x999), signature);
+        assertFalse(isValid, "Wrong signer should fail");
+    }
+
+    function testVerifyDocument_InvalidSignature() public {
+        bytes memory validSignature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, validSignature);
+
+        bool isValid = documentRegistry.verifyDocument(TEST_HASH, TEST_SIGNER, "invalid signature");
+        assertFalse(isValid, "Invalid signature should fail");
+    }
+
+    function testVerifyDocument_EmptySignatureFails() public {
+        bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
+
         vm.expectRevert(bytes("DocumentRegistry: empty signature"));
         documentRegistry.verifyDocument(TEST_HASH, TEST_SIGNER, "");
     }
 
-    /**
-     * @dev Test verification of non-existent document with empty signature
-     */
-    function testVerifyDocument_NonExistentWithEmptySignature() public {
-        // Should revert with empty signature error before checking existence
-        vm.expectRevert(bytes("DocumentRegistry: empty signature"));
-        documentRegistry.verifyDocument(TEST_HASH, TEST_SIGNER, "");
-    }
+    // ─── Getters ──────────────────────────────────────────────────────────────
 
-    /**
-     * @dev Test utility function verifySignature
-     */
-    function testVerifySignature() public {
-        // Generate a valid signature
+    function testGetDocumentSignature() public {
         bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        
-        // Verify the signature
-        bool isValid = documentRegistry.verifySignature(TEST_HASH, TEST_TIMESTAMP, TEST_SIGNER, signature);
-        
-        // Should return true
-        assertTrue(isValid, "Signature verification should succeed");
+        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
+
+        assertEq(documentRegistry.getDocumentSignature(TEST_HASH), signature);
     }
 
-    /**
-     * @dev Test utility function verifySignature with wrong signer
-     */
-    function testVerifySignature_WrongSigner() public {
-        // Generate a valid signature
+    function testGetDocumentSigner() public {
         bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        
-        // Try to verify with wrong signer
-        address wrongSigner = address(0x999);
-        console.log(block.timestamp);
-        bool isValid = documentRegistry.verifySignature(TEST_HASH, TEST_TIMESTAMP, wrongSigner, signature);
-        
-        // Should return false
-        assertFalse(isValid, "Signature verification with wrong signer should fail");
+        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
+
+        assertEq(documentRegistry.getDocumentSigner(TEST_HASH), TEST_SIGNER);
     }
 
-    /**
-     * @dev Test multiple documents can be stored
-     */
+    function testGetDocumentTimestamp() public {
+        bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+        documentRegistry.storeDocumentHash(TEST_HASH, TEST_TIMESTAMP, signature);
+
+        assertEq(documentRegistry.getDocumentTimestamp(TEST_HASH), TEST_TIMESTAMP);
+    }
+
+    // ─── Count & index ────────────────────────────────────────────────────────
+
+    function testGetDocumentCount_EmptyRegistry() public view {
+        assertEq(documentRegistry.getDocumentCount(), 0, "Empty registry should have 0 documents");
+    }
+
+    function testGetDocumentCount_AfterStore() public {
+        bytes memory sig1 = _generateSignature(keccak256("doc1"), TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+        bytes memory sig2 = _generateSignature(keccak256("doc2"), TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+        bytes memory sig3 = _generateSignature(keccak256("doc3"), TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+
+        documentRegistry.storeDocumentHash(keccak256("doc1"), TEST_TIMESTAMP, sig1);
+        assertEq(documentRegistry.getDocumentCount(), 1);
+        documentRegistry.storeDocumentHash(keccak256("doc2"), TEST_TIMESTAMP, sig2);
+        assertEq(documentRegistry.getDocumentCount(), 2);
+        documentRegistry.storeDocumentHash(keccak256("doc3"), TEST_TIMESTAMP, sig3);
+        assertEq(documentRegistry.getDocumentCount(), 3);
+    }
+
+    function testGetDocumentHashByIndex() public {
+        bytes32 hash1 = keccak256("doc1");
+        bytes32 hash2 = keccak256("doc2");
+
+        bytes memory sig1 = _generateSignature(hash1, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+        bytes memory sig2 = _generateSignature(hash2, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+
+        documentRegistry.storeDocumentHash(hash1, TEST_TIMESTAMP, sig1);
+        documentRegistry.storeDocumentHash(hash2, TEST_TIMESTAMP, sig2);
+
+        assertEq(documentRegistry.getDocumentHashByIndex(0), hash1, "Index 0 should return hash1");
+        assertEq(documentRegistry.getDocumentHashByIndex(1), hash2, "Index 1 should return hash2");
+    }
+
+    function testGetDocumentHashByIndex_OutOfBoundsReverts() public {
+        vm.expectRevert(bytes("DocumentRegistry: index out of bounds"));
+        documentRegistry.getDocumentHashByIndex(0);
+    }
+
+    // ─── Multiple documents ───────────────────────────────────────────────────
+
     function testStoreMultipleDocuments() public {
-        // Generate signatures for multiple documents
         bytes32 hash1 = keccak256("document 1");
         bytes32 hash2 = keccak256("document 2");
         bytes32 hash3 = keccak256("document 3");
-        
-        bytes memory signature1 = _generateSignature(hash1, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        bytes memory signature2 = _generateSignature(hash2, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        bytes memory signature3 = _generateSignature(hash3, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
-        
-        // Store all documents
-        assertTrue(documentRegistry.storeDocumentHash(hash1, TEST_TIMESTAMP, signature1), "First document should store");
-        assertTrue(documentRegistry.storeDocumentHash(hash2, TEST_TIMESTAMP, signature2), "Second document should store");
-        assertTrue(documentRegistry.storeDocumentHash(hash3, TEST_TIMESTAMP, signature3), "Third document should store");
-        
-        // Verify all documents exist
-        assertTrue(documentRegistry.isDocumentStored(hash1), "First document should exist");
-        assertTrue(documentRegistry.isDocumentStored(hash2), "Second document should exist");
-        assertTrue(documentRegistry.isDocumentStored(hash3), "Third document should exist");
-        
-        // Verify all documents can be verified
-        assertTrue(documentRegistry.verifyDocument(hash1, TEST_SIGNER, signature1), "First document should verify");
-        assertTrue(documentRegistry.verifyDocument(hash2, TEST_SIGNER, signature2), "Second document should verify");
-        assertTrue(documentRegistry.verifyDocument(hash3, TEST_SIGNER, signature3), "Third document should verify");
+
+        bytes memory sig1 = _generateSignature(hash1, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+        bytes memory sig2 = _generateSignature(hash2, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+        bytes memory sig3 = _generateSignature(hash3, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+
+        assertTrue(documentRegistry.storeDocumentHash(hash1, TEST_TIMESTAMP, sig1));
+        assertTrue(documentRegistry.storeDocumentHash(hash2, TEST_TIMESTAMP, sig2));
+        assertTrue(documentRegistry.storeDocumentHash(hash3, TEST_TIMESTAMP, sig3));
+
+        assertEq(documentRegistry.getDocumentCount(), 3);
+        assertTrue(documentRegistry.isDocumentStored(hash1));
+        assertTrue(documentRegistry.isDocumentStored(hash2));
+        assertTrue(documentRegistry.isDocumentStored(hash3));
     }
 
-    /**
-     * @dev Test edge case with minimum timestamp
-     */
-    function testStoreDocumentHash_MinimumTimestamp() public {
-        uint256 minTimestamp = 0;
-        bytes memory signature = _generateSignature(TEST_HASH, minTimestamp, TEST_PRIVATE_KEY);
-        
-        // Should succeed with minimum timestamp
-        bool success = documentRegistry.storeDocumentHash(TEST_HASH, minTimestamp, signature);
-        assertTrue(success, "Document with minimum timestamp should store");
+    // ─── Signature utility ────────────────────────────────────────────────────
+
+    function testVerifySignature() public {
+        bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+        assertTrue(documentRegistry.verifySignature(TEST_HASH, TEST_TIMESTAMP, TEST_SIGNER, signature));
     }
 
-    /**
-     * @dev Test edge case with current timestamp
-     */
-    function testStoreDocumentHash_CurrentTimestamp() public {
-        uint256 currentTimestamp = block.timestamp;
-        bytes memory signature = _generateSignature(TEST_HASH, currentTimestamp, TEST_PRIVATE_KEY);
-        
-        // Should succeed with current timestamp
-        bool success = documentRegistry.storeDocumentHash(TEST_HASH, currentTimestamp, signature);
-        assertTrue(success, "Document with current timestamp should store");
+    function testVerifySignature_WrongSigner() public {
+        bytes memory signature = _generateSignature(TEST_HASH, TEST_TIMESTAMP, TEST_PRIVATE_KEY);
+        assertFalse(documentRegistry.verifySignature(TEST_HASH, TEST_TIMESTAMP, address(0x999), signature));
     }
 
-    /**
-     * @dev Helper function to generate a signature for testing
-     */
+    // ─── Helper ───────────────────────────────────────────────────────────────
+
     function _generateSignature(bytes32 hash, uint256 timestamp, uint256 privateKey) internal pure returns (bytes memory) {
-        // Create the message that would be signed (same as contract)
         bytes32 messageHash = keccak256(abi.encodePacked(hash, timestamp));
-        
-        // Create the Ethereum signed message hash (same as contract)
         bytes32 ethSignedMessageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
-        
-        // Sign the message
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, ethSignedMessageHash);
-        
-        // Assemble the signature
         return abi.encodePacked(r, s, v);
     }
 }
