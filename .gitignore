@@ -1,0 +1,63 @@
+# ============================================
+# Foundry / Solidity
+# ============================================
+cache/
+out/
+lib/
+broadcast/*/31337/
+broadcast/*/1/
+
+# ============================================
+# Environment & secrets
+# ============================================
+.env
+.env.local
+.env.local.bak
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# ============================================
+# Documentation (generada o privada)
+# ============================================
+*.md
+!README.md
+
+# ============================================
+# Node / Next.js (dapp)
+# ============================================
+dapp/node_modules/
+dapp/.next/
+dapp/out/
+dapp/build/
+dapp/.vercel/
+dapp/*.tsbuildinfo
+dapp/next-env.d.ts
+dapp/coverage/
+dapp/npm-debug.log*
+dapp/yarn-debug.log*
+dapp/yarn-error.log*
+dapp/.pnpm-debug.log*
+
+# ============================================
+# Sistema operativo
+# ============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================
+# Editores
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================
+# Logs y temporales
+# ============================================
+*.log
+/tmp/
