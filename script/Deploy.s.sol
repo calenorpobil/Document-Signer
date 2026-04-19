@@ -16,13 +16,14 @@ contract Deploy is Script {
     function setUp() public {}
 
     function run() public {
-        // Start broadcasting transactions
-        vm.startBroadcast();
+        // Use PRIVATE_KEY env var if set, otherwise fall back to Anvil's first default key
+        uint256 deployerKey = vm.envOr(
+            "PRIVATE_KEY",
+            uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80)
+        );
 
-        // Deploy the DocumentRegistry contract
+        vm.startBroadcast(deployerKey);
         documentRegistry = new DocumentRegistry();
-
-        // Stop broadcasting
         vm.stopBroadcast();
     }
 }

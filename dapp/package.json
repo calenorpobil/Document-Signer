@@ -6,7 +6,8 @@
     "dev": "set NEXT_TELEMETRY_DISABLED=1 && next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "cd .. && forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --broadcast && node scripts/sync-address.js"
   },
   "dependencies": {
     "@adraffy/ens-normalize": "^1.11.1",

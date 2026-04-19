@@ -1,25 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { FileSignature, CheckCircle, Wallet, History } from 'lucide-react';
+import { FileSignature, CheckCircle, History } from 'lucide-react';
 import { FileUploader } from '../components/FileUploader';
 import { DocumentSigner } from '../components/DocumentSigner';
 import { DocumentVerifier } from '../components/DocumentVerifier';
 import { DocumentHistory } from '../components/DocumentHistory';
-import { DocumentDetail } from '../components/DocumentDetail';
 import { WalletSelector } from '../components/WalletSelector';
-import { DocumentRecord } from '../types/ethereum';
 
-type Tab = 'sign' | 'verify' | 'history' | 'detail';
+type Tab = 'sign' | 'verify' | 'history';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('sign');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentHash, setDocumentHash] = useState<string>('');
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null);
-  const [detailDocument, setDetailDocument] = useState<DocumentRecord | null>(null);
-
   const handleFileSelected = (file: File) => {
     setSelectedFile(file);
     setUploadError(null);
@@ -39,20 +34,8 @@ export default function Home() {
     setDocumentHash('');
   };
 
-  const handleDocumentSelect = (doc: DocumentRecord) => {
-    setSelectedDocument(doc);
-    setDetailDocument(null);
+  const handleDocumentSelect = (_doc: unknown) => {
     setActiveTab('verify');
-  };
-
-  const handleViewDetails = (doc: DocumentRecord) => {
-    setDetailDocument(doc);
-    setActiveTab('detail');
-  };
-
-  const handleBackFromDetail = () => {
-    setDetailDocument(null);
-    setActiveTab('history');
   };
 
   return (
@@ -244,9 +227,8 @@ export default function Home() {
 
         {activeTab === 'history' && (
           <div className="max-w-4xl mx-auto">
-            <DocumentHistory 
-              onDocumentSelect={handleDocumentSelect} 
-              onViewDetails={handleViewDetails}
+            <DocumentHistory
+              onDocumentSelect={handleDocumentSelect}
             />
             
             {/* Info Card */}
@@ -262,14 +244,6 @@ export default function Home() {
           </div>
         )}
 
-        {activeTab === 'detail' && detailDocument && (
-          <div className="max-w-4xl mx-auto">
-            <DocumentDetail 
-              document={detailDocument} 
-              onBack={handleBackFromDetail}
-            />
-          </div>
-        )}
       </main>
 
       {/* Footer */}
